@@ -16,16 +16,6 @@ abstract class JGUnary implements JGFormula {
     this.operator = operator;
   }
 
-  @Override
-  public void substitute(JGTerm term, JGTerm forVar) {
-    formula.substitute(term, forVar);
-  }
-
-  @Override
-  public Set<JGTerm> freeVars() {
-    return formula.freeVars();
-  }
-
   public JGFormula getFormula() {
     return formula;
   }

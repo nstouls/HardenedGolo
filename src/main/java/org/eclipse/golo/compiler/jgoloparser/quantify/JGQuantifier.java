@@ -28,7 +28,7 @@ abstract class JGQuantifier implements JGFormula {
 
   private JGTerm typeQuantifier;
 
-  protected JGTerm quantifiedBy;
+  private JGTerm quantifiedBy;
 
   protected JGFormula formula;
 
@@ -37,20 +37,6 @@ abstract class JGQuantifier implements JGFormula {
     this.quantifier = quantifier;
     this.formula = formula;
     this.typeQuantifier = typeQuantifier;
-  }
-
-  @Override
-  public void substitute(JGTerm term, JGTerm forVar) {
-    if (!forVar.equals(quantifiedBy)) {
-      formula.substitute(term, forVar);
-    }
-  }
-
-  @Override
-  public Set<JGTerm> freeVars() {
-    Set<JGTerm> freeVars = new HashSet<>(formula.freeVars());
-    freeVars.remove(quantifiedBy);
-    return freeVars;
   }
 
   @Override

@@ -65,15 +65,6 @@ public class JGTerm implements JGFormula {
     this.name = name;
   }
 
-  private ArrayList<JGFormula> getInnerTerms() {
-    return innerTerms;
-  }
-
-  private void setInnerTerms(ArrayList<JGFormula> innerTerms) {
-    this.innerTerms = innerTerms;
-    isFunction = true;
-  }
-
   public int arity() {
     return !isFunction ? 0 : innerTerms.size();
   }
@@ -112,46 +103,6 @@ public class JGTerm implements JGFormula {
     } else {
       return name;
     }
-  }
-
-  @Override
-  public void substitute(JGTerm term, JGTerm forVar) {
-    if (isVariable() && equals(forVar)) {
-      setName(term.getName());
-      setInnerTerms(term.getInnerTerms());
-    }
-
-    for (int i = 0; i < innerTerms.size(); i++) {
-      JGFormula innerForm = innerTerms.get(i);
-      if (innerForm instanceof JGTerm) {
-        JGTerm innerTerm = (JGTerm) innerForm;
-        if (!innerTerm.isVariable()) {
-          innerTerm.substitute(term, forVar);
-        } else if (innerTerm.equals(forVar)) {
-          innerTerms.set(i, term);
-        }
-      } else {
-        innerForm.substitute(term, forVar);
-      }
-    }
-  }
-
-  @Override
-  public Set<JGTerm> freeVars() {
-    HashSet<JGTerm> freeVars = new HashSet<>();
-    for (JGFormula innerForm : innerTerms) {
-      if (innerForm instanceof JGTerm) {
-        JGTerm innerTerm = (JGTerm)innerForm;
-        if (innerTerm.isVariable()) {
-          freeVars.add(innerTerm);
-        } else {
-          freeVars.addAll(innerTerm.freeVars());
-        }
-      } else {
-        freeVars.addAll(innerForm.freeVars());
-      }
-    }
-    return freeVars;
   }
 
   @Override

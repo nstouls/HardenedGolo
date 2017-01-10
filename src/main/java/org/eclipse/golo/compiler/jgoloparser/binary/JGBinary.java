@@ -50,19 +50,6 @@ public abstract class JGBinary implements JGFormula {
   }
 
   @Override
-  public void substitute(JGTerm term, JGTerm forVar) {
-    left.substitute(term, forVar);
-    right.substitute(term, forVar);
-  }
-
-  @Override
-  public Set<JGTerm> freeVars() {
-    Set<JGTerm> freeVars = new HashSet<>(left.freeVars());
-    freeVars.addAll(right.freeVars());
-    return freeVars;
-  }
-
-  @Override
   public String toString() {
     return "(" + left + " " + operator + " " + right + ")";
   }
