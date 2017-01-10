@@ -95,23 +95,12 @@ public abstract class JGBinary implements JGFormula {
     }
 
     static Operator parse(String operator) {
-      switch (operator) {
-        case "+":   return PLUS;
-        case "<":   return LESS;
-        case "-":   return MINUS;
-        case "=":   return EQUALS;
-        case "/":   return DIVIDE;
-        case "%":   return MODULO;
-        case ">":   return GREATER;
-        case "<>":  return NOT_EQUALS;
-        case "->":  return IMPLICATIVE;
-        case "/\\": return CONJUNCTIVE;
-        case "\\/": return DISJUNCTIVE;
-        case "*":   return MULTIPLICATION;
-        case "<=":  return LESS_OR_EQUALS;
-        case ">=":  return GREATER_OR_EQUALS;
-        default: throw new RuntimeException("Found unknown binary operator: " + operator);
+      for (Operator current : values()) {
+        if (current.symbol.equals(operator)) {
+          return current;
+        }
       }
+      throw new RuntimeException("Found unknown binary operator: " + operator);
     }
   }
 }
