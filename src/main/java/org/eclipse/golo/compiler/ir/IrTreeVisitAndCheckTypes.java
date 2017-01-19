@@ -197,7 +197,8 @@ public class IrTreeVisitAndCheckTypes implements GoloIrVisitor {
     String name = referenceLookup.getName();
     LocalReference reference = referenceTable.get(name);
     if (reference != null) {
-      if (reference.getType() != type) {
+      JGVariableContainer.Type referenceType = reference.getType();
+      if (referenceType != null && referenceType != type) {
         System.err.println("Variable '" + name + "' defined in specification as non-" + type.toString().toLowerCase() + " value but used as it!");
       }
     } else {

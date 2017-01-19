@@ -20,8 +20,8 @@ public class JGSpecs {
   @Override
   public String toString() {
     StringBuilder res = new StringBuilder();
-    for(JGSpec sp : specList) {
-      res.append(NEW_LINE).append(sp.toString());
+    for(JGSpec spec : specList) {
+      res.append(NEW_LINE).append(spec);
     }
     return res.toString();
   }
