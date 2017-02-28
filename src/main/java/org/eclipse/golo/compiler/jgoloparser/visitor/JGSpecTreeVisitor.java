@@ -4,197 +4,115 @@ import org.eclipse.golo.compiler.ir.GoloFunction;
 import org.eclipse.golo.compiler.ir.LocalReference;
 import org.eclipse.golo.compiler.ir.ReferenceTable;
 import org.eclipse.golo.compiler.jgoloparser.*;
-import org.eclipse.golo.compiler.jgoloparser.binary.*;
-import org.eclipse.golo.compiler.jgoloparser.quantify.JGExistential;
-import org.eclipse.golo.compiler.jgoloparser.quantify.JGUniversal;
-import org.eclipse.golo.compiler.jgoloparser.unary.JGMinus;
-import org.eclipse.golo.compiler.jgoloparser.unary.JGNegated;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.eclipse.golo.compiler.jgoloparser.JGVariableContainer.Type;
+import static java.util.Map.Entry;
 
 public class JGSpecTreeVisitor implements SpecTreeVisitor {
 
-  private static final Set<String> WHYML_TYPES = new HashSet<>();
+  private ReferenceTable originalTable;
 
-  static {
-    WHYML_TYPES.add("char");
-    WHYML_TYPES.add("byte");
-    WHYML_TYPES.add("short");
-    WHYML_TYPES.add("int");
-    WHYML_TYPES.add("long");
-    WHYML_TYPES.add("float");
-    WHYML_TYPES.add("double");
-  }
-
-  private ReferenceTable referenceTable;
-
-  @Override
-  public void visit(JGSpecs node) {
-    node.getSpecList().forEach(this::visit);
-  }
-
-  @Override
-  public void visit(JGSpec node) {
-    node.getFormula().accept(this);
-  }
+  private TypedReferenceTable referenceTable;
 
   @Override
   public void verify(GoloFunction function) {
     JGSpecs specs = function.getSpecification();
     if (specs != null) {
-      referenceTable = function.getBlock().getReferenceTable();
-      visit(specs);
+      originalTable = function.getBlock().getReferenceTable();
+      referenceTable = new TypedReferenceTable();
+      verify(specs);
+      assignTypesToReferences();
     }
   }
 
   @Override
-  public void visit(JGAdditive node) {
-    visitNumeric(node);
+  public void verify(JGSpecs node) {
+    node.getSpecList().forEach(this::verify);
   }
 
   @Override
-  public void visit(JGCompare node) {
-    visitNumeric(node);
+  public void verify(JGSpec node) {
+    node.getFormula().accept(this);
   }
 
   @Override
-  public void visit(JGMultiplicative node) {
-    visitNumeric(node);
+  public Type verify(JGVariableContainer node) {
+    return node.accept(this);
   }
 
-  private void visitNumeric(JGBinary node) {
-    try {
-      visitNumeric(node.getLeft());
-    } catch (ParseException e) {
-      System.err.println("Left term of " + node + " " + e.getMessage());
-    }
-    try {
-      visitNumeric(node.getRight());
-    } catch (ParseException e) {
-      System.err.println("Right term of " + node + " " + e.getMessage());
-    }
+  @Override
+  public void assign(JGTerm term, JGFormula operator, Type type) {
+    referenceTable.assign(term, operator, type);
   }
 
-  private void visitNumeric(JGFormula formula) throws ParseException {
-    formula.accept(this);
-    Type type = formula.getType();
-    if (type != Type.NUMERIC) {
-      if (formula instanceof JGTerm && type == Type.OTHER) {
-        LocalReference reference = referenceTable.get(((JGTerm) formula).getName());
-        if (reference != null) {
-          type = reference.getType();
-          if (type == null) {
-            reference.setType(Type.NUMERIC);
-          } else if (type == Type.BOOLEAN) {
-            throw new ParseException(" is already defined as boolean variable and can't use as boolean");
-          }
+  private void assignTypesToReferences() {
+    computedAll: while (true) {
+      for (Entry<JGTerm, Map<Type, Set<JGFormula>>> termInfo : referenceTable) {
+        JGTerm term = termInfo.getKey();
+        Set<Type> assignedTypes = termInfo.getValue().keySet();
+        if (assignedTypes.contains(Type.NUMERIC_OR_BOOLEAN) && assignedTypes.contains(Type.NUMERIC)) {
+          updateTypes(termInfo.getValue(), Type.NUMERIC);
+          continue computedAll;
+        } else if (assignedTypes.contains(Type.NUMERIC_OR_BOOLEAN) && assignedTypes.contains(Type.BOOLEAN)) {
+          updateTypes(termInfo.getValue(), Type.BOOLEAN);
+          continue computedAll;
+        } else if (assignedTypes.contains(Type.NUMERIC) && assignedTypes.contains(Type.BOOLEAN)) {
+          System.err.println("Variable '" + term + "' used as boolean and numeric at the same time:");
+          printFormulas(Type.NUMERIC, termInfo.getValue().get(Type.NUMERIC));
+          printFormulas(Type.BOOLEAN, termInfo.getValue().get(Type.BOOLEAN));
+          System.err.println("");
         }
-      } else {
-        throw new ParseException("isn't a numeric!");
+      }
+      break;
+    }
+    for (Entry<JGTerm, Map<Type, Set<JGFormula>>> termInfo : referenceTable) {
+      Set<Type> assignedTypes = termInfo.getValue().keySet();
+      assignType(termInfo.getKey(), assignedTypes, Type.NUMERIC);
+      assignType(termInfo.getKey(), assignedTypes, Type.BOOLEAN);
+    }
+  }
+
+  private void assignType(JGTerm term, Set<Type> assignedTypes, Type expected) {
+    if (assignedTypes.size() == 1 && assignedTypes.contains(expected)) {
+      LocalReference reference = originalTable.get(term.getName());
+      if (reference != null) {
+        reference.setType(expected);
       }
     }
   }
 
-  @Override
-  public void visit(JGConjunctive node) {
-    visitBoolean(node);
-  }
-
-  @Override
-  public void visit(JGDisjunctive node) {
-    visitBoolean(node);
-  }
-
-  @Override
-  public void visit(JGImplicative node) {
-    visitBoolean(node);
-  }
-
-  private void visitBoolean(JGBinary node) {
-    try {
-      visitBoolean(node.getLeft());
-    } catch (ParseException e) {
-      System.err.println("Left term of " + node + " " + e.getMessage());
-    }
-    try {
-      visitBoolean(node.getRight());
-    } catch (ParseException e) {
-      System.err.println("Right term of " + node + " " + e.getMessage());
+  private void printFormulas(Type type, Set<JGFormula> formulas) {
+    System.err.println("\t" + type + ":");
+    for (JGFormula formula : formulas) {
+      System.err.println("\t\t" + formula);
     }
   }
 
-  private void visitBoolean(JGFormula formula) throws ParseException {
-    formula.accept(this);
-    Type type = formula.getType();
-    if (type != JGVariableContainer.Type.BOOLEAN) {
-      if (formula instanceof JGTerm && type == Type.OTHER) {
-        LocalReference reference = referenceTable.get(((JGTerm) formula).getName());
-        if (reference != null) {
-          type = reference.getType();
-          if (type == null) {
-            reference.setType(Type.BOOLEAN);
-          } else if (type == Type.NUMERIC) {
-            throw new ParseException(" is already defined as boolean and can't use as numeric");
-          }
-        }
-      } else {
-        throw new ParseException("isn't a boolean!");
-      }
+  private void updateTypes(Map<Type, Set<JGFormula>> formulasByTypes, Type expected) {
+    Set<JGFormula> formulas = formulasByTypes.get(Type.NUMERIC_OR_BOOLEAN);
+    for (JGFormula formula : formulas) {
+      JGBinary operator = JGBinary.class.cast(formula);
+      assign(JGTerm.class.cast(operator.getLeft()), operator, expected);
+      assign(JGTerm.class.cast(operator.getRight()), operator, expected);
     }
+    formulasByTypes.remove(Type.NUMERIC_OR_BOOLEAN);
   }
 
-  @Override
-  public void visit(JGExistential node) {
-    try {
-      if (!isAllowableWhyMLType(node.getTypeQuantifier())) {
-        System.err.println("Unsupported type of quantifier!");
-      }
-      visitBoolean(node.getFormula());
-    } catch (ParseException e) {
-      System.err.println("Quantified term of " + node + " " + e.getMessage());
+  private class TypedReferenceTable implements Iterable<Entry<JGTerm, Map<Type, Set<JGFormula>>>> {
+
+    private Map<JGTerm, Map<Type, Set<JGFormula>>> table = new HashMap<>();
+
+    public void assign(JGTerm term, JGFormula operator, Type type) {
+      Map<Type, Set<JGFormula>> record = table.computeIfAbsent(term, k -> new HashMap<>());
+      Set<JGFormula> formulas = record.computeIfAbsent(type, k -> new HashSet<>());
+      formulas.add(operator);
     }
-  }
 
-  @Override
-  public void visit(JGUniversal node) {
-    try {
-      if (isAllowableWhyMLType(node.getTypeQuantifier())) {
-        System.err.println("Unsupported type of quantifier!");
-      }
-      visitBoolean(node.getFormula());
-    } catch (ParseException e) {
-      System.err.println("Quantified term of " + node + " " + e.getMessage());
+    @Override
+    public Iterator<Entry<JGTerm, Map<Type, Set<JGFormula>>>> iterator() {
+      return table.entrySet().iterator();
     }
-  }
-
-  private boolean isAllowableWhyMLType(JGTerm type) {
-    return WHYML_TYPES.contains(type.toString());
-  }
-
-  @Override
-  public void visit(JGMinus node) {
-    try {
-      visitNumeric(node.getFormula());
-    } catch (ParseException e) {
-      System.err.println(node + " " + e.getMessage());
-    }
-  }
-
-  @Override
-  public void visit(JGNegated node) {
-    try {
-      visitBoolean(node.getFormula());
-    } catch (ParseException e) {
-      System.err.println(node.getFormula() + " " + e.getMessage());
-    }
-  }
-
-  @Override
-  public void visit(JGTerm node) {
   }
 }

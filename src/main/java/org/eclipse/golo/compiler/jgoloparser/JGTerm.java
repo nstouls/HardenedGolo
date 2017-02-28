@@ -20,27 +20,11 @@ package org.eclipse.golo.compiler.jgoloparser;
 
 import org.eclipse.golo.compiler.jgoloparser.visitor.SpecTreeVisitor;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
-
 public class JGTerm implements JGFormula {
 
   private String name;
 
-  private boolean isFunction;
-
-  private ArrayList<JGFormula> innerTerms;
-
-  private Type type = Type.OTHER;
-
-  public JGTerm(String name, ArrayList<JGFormula> innerTerms) {
-    this.name = name;
-    if (innerTerms != null && innerTerms.size() > 0) {
-      this.innerTerms = innerTerms;
-      isFunction = true;
-    }
-  }
+  private Type type;
 
   public JGTerm(JGLiteral lit) {
     this(lit.toString());
@@ -54,7 +38,6 @@ public class JGTerm implements JGFormula {
 
   public JGTerm(String name) {
     this.name = name;
-    innerTerms = new ArrayList<>();
   }
 
   public String getName() {
@@ -65,98 +48,22 @@ public class JGTerm implements JGFormula {
     this.name = name;
   }
 
-  private ArrayList<JGFormula> getInnerTerms() {
-    return innerTerms;
-  }
-
-  private void setInnerTerms(ArrayList<JGFormula> innerTerms) {
-    this.innerTerms = innerTerms;
-    isFunction = true;
-  }
-
-  public int arity() {
-    return !isFunction ? 0 : innerTerms.size();
-  }
-
   public boolean isConstant() {
-    return !isFunction && Character.isUpperCase(name.charAt(0));
+    return Character.isUpperCase(name.charAt(0));
   }
 
   public boolean isVariable() {
-    return !isFunction && Character.isLowerCase(name.charAt(0));
-  }
-
-  public boolean isFunction() {
-    return isFunction;
-  }
-
-  @Override
-  public Type getType() {
-    return type;
+    return Character.isLowerCase(name.charAt(0));
   }
 
   @Override
   public String toString() {
-    if (isFunction()) {
-      StringBuilder result = new StringBuilder();
-      result.append("( ");
-      result.append(name);
-      result.append(" ");
-
-      for (JGFormula innerTerm : innerTerms) {
-        result.append(innerTerm);
-        result.append(" ");
-      }
-      result.append(")");
-      return result.toString();
-    } else {
-      return name;
-    }
+    return name;
   }
 
   @Override
-  public void substitute(JGTerm term, JGTerm forVar) {
-    if (isVariable() && equals(forVar)) {
-      setName(term.getName());
-      setInnerTerms(term.getInnerTerms());
-    }
-
-    for (int i = 0; i < innerTerms.size(); i++) {
-      JGFormula innerForm = innerTerms.get(i);
-      if (innerForm instanceof JGTerm) {
-        JGTerm innerTerm = (JGTerm) innerForm;
-        if (!innerTerm.isVariable()) {
-          innerTerm.substitute(term, forVar);
-        } else if (innerTerm.equals(forVar)) {
-          innerTerms.set(i, term);
-        }
-      } else {
-        innerForm.substitute(term, forVar);
-      }
-    }
-  }
-
-  @Override
-  public Set<JGTerm> freeVars() {
-    HashSet<JGTerm> freeVars = new HashSet<>();
-    for (JGFormula innerForm : innerTerms) {
-      if (innerForm instanceof JGTerm) {
-        JGTerm innerTerm = (JGTerm)innerForm;
-        if (innerTerm.isVariable()) {
-          freeVars.add(innerTerm);
-        } else {
-          freeVars.addAll(innerTerm.freeVars());
-        }
-      } else {
-        freeVars.addAll(innerForm.freeVars());
-      }
-    }
-    return freeVars;
-  }
-
-  @Override
-  public void accept(SpecTreeVisitor visitor) {
-    visitor.visit(this);
+  public Type accept(SpecTreeVisitor visitor) {
+    return type;
   }
 
   @Override
@@ -165,12 +72,14 @@ public class JGTerm implements JGFormula {
   }
 
   @Override
-  public boolean equals(Object obj) {
-    // FIXME check all possible variants
-    if (isFunction && obj instanceof JGTerm) {
-      JGTerm another = JGTerm.class.cast(obj);
-      return another.isFunction && type == another.type && name.equals(another.name) && arity() == another.arity();
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
     }
-    return obj instanceof JGTerm && toString().equals(obj.toString());
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    JGTerm another = (JGTerm) object;
+    return name.equals(another.name);
   }
 }

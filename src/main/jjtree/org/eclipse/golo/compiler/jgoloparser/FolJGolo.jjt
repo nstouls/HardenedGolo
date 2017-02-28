@@ -40,9 +40,6 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import org.eclipse.golo.compiler.jgoloparser.binary.*;
-import org.eclipse.golo.compiler.jgoloparser.quantify.*;
-import org.eclipse.golo.compiler.jgoloparser.unary.*;
 import org.eclipse.golo.compiler.jgoloparser.visitor.*;
 
 
@@ -234,8 +231,6 @@ TOKEN :
 }
 
 
-
-
 // Literals
 TOKEN :
 {
@@ -279,7 +274,6 @@ TOKEN :
 }
 
 
-
 TOKEN :
 {
   < ID: (< LOWER > | <UPPER> | <UNDER> ) (< INNER >)* >
@@ -291,8 +285,6 @@ TOKEN :
 |   < #UNDER: "_"  >
 
 }
-
-
 
 
 JGSpecs parse() :
@@ -329,9 +321,6 @@ JGSpecs specs() :
 }
 
 
-
-
-
 /*
  * spec   ::=  ensures   "{" form "}"
  *           | requires  "{" form "}"
@@ -353,48 +342,56 @@ JGSpec spec() :
     form=formula()
     "}"
     {
-        return new JGSpec(specType,form);
+        return new JGSpec(specType, form);
     }
 }
 
 
-
-
 /*
  * form   ::=  clause "->"  form  // !! has to be more prioritized.
- *           | clause "<->" form  // !! has to be more prioritized.
+ *           | clause "<->" form  // !! has to be more prioritized. //TODO logical equivalence doesn't support now
  *           | clause "/\"  form
  *           | clause "\/"  form
  *           | clause
  */
 JGFormula formula() :
 {
-    JGFormula innerA, innerB;
+    String symbol;
+    JGFormula left, right;
 }
 {
-  innerA = clause()
+  left = clause()
 	(
       < IMP >
-      innerB = formula()
       {
-          return new JGImplicative(innerA, innerB);
+          symbol = token.image;
+      }
+      right = formula()
+      {
+          return new JGBinary(left, "->", right);
       }
 
     | < DISJ >
-      innerB = formula()
       {
-          return new JGDisjunctive(innerA, innerB);
+          symbol = token.image;
+      }
+      right = formula()
+      {
+          return new JGBinary(left, "\\/", right);
       }
 
     | < CONJ >
-      innerB = formula()
       {
-          return new JGConjunctive(innerA, innerB);
+            symbol = token.image;
+      }
+      right = formula()
+      {
+          return new JGBinary(left, "/\\", right);
       }
 
     |
     {
-      return innerA;
+      return left;
     }
 	)
 }
@@ -423,16 +420,18 @@ JGFormula clause() :
 }
 
 
-
-
-JGExistential existential() :
+JGQuantifier existential() :
 {
+    String symbol;
     JGFormula inner;
     JGTerm qfdVar;
     JGTerm type;
 }
 {
 	< EXIST >
+	{
+	    symbol = token.image;
+	}
 	< ID >
 	{
 	    qfdVar = new JGTerm(token.image);
@@ -447,19 +446,23 @@ JGExistential existential() :
 	inner = formula()
 	< CLOSE >
 	{
-	    return new JGExistential(qfdVar, type, inner);
+	    return new JGQuantifier(symbol, qfdVar, type, inner);
 	}
 }
 
 
-JGUniversal universal() :
+JGQuantifier universal() :
 {
+    String symbol;
     JGFormula inner;
     JGTerm qfdVar;
     JGTerm type;
 }
 {
 	< ALL >
+	{
+	    symbol = token.image;
+	}
 	< ID >
 	{
 	    qfdVar = new JGTerm(token.image);
@@ -474,25 +477,26 @@ JGUniversal universal() :
 	inner = formula()
 	< CLOSE >
 	{
-	    return new JGUniversal(qfdVar, type, inner);
+	    return new JGQuantifier(symbol, qfdVar, type, inner);
 	}
 }
 
 
-JGNegated negated() :
+JGUnary negated() :
 {
+    String symbol;
     JGFormula inner;
 }
 {
 	< NEG >
+	{
+	    symbol = token.image;
+	}
 	inner = formula()
 	{
-	    return new JGNegated(inner);
+	    return new JGUnary(symbol, inner);
 	}
 }
-
-
-
 
 
 /*
@@ -506,27 +510,24 @@ JGNegated negated() :
  */
 JGFormula comparison() :
 {
-    JGFormula innerA, innerB;
+    JGFormula left, right;
     String symbol;
     Token token = null;
 }
 {
-  innerA = arith()
+  left = arith()
   (
-      token=<COMPOP> innerB=arith()
+      token=<COMPOP> right=arith()
       {
         symbol = token.image;
-        return new JGCompare(innerA, innerB, symbol);
+        return new JGBinary(left, symbol, right);
       }
     |
       {
-        return innerA;  // TODO : have to convert it into a formula
+        return left;
       }
   )
 }
-
-
-
 
 
 /*
@@ -536,27 +537,26 @@ JGFormula comparison() :
  */
 JGFormula arith() :
 {
-  JGFormula innerA, innerB;
+  JGFormula left, right;
   String symbol;
 }
 {
-  innerA = mult()
+  left = mult()
   (
     < ADDSOP >
     {
       symbol = token.image;
     }
-    innerB = arith()
+    right = arith()
     {
-      return new JGAdditive(innerA, innerB, symbol);
+      return new JGBinary(left, symbol, right);
     }
   |
     {
-      return innerA;
+      return left;
     }
   )
 }
-
 
 
 /*
@@ -567,30 +567,26 @@ JGFormula arith() :
  */
 JGFormula mult() :
 {
-  JGFormula innerA, innerB;
+  JGFormula left, right;
   String symbol;
 }
 {
-    innerA = term()
+    left = term()
     (
       < MULTSOP >
       {
         symbol = token.image;
       }
-      innerB = mult()
+      right = mult()
       {
-        return new JGMultiplicative(innerA, innerB, symbol);
+        return new JGBinary(left, symbol, right);
       }
     |
       {
-        return innerA;
+        return left;
       }
   )
 }
-
-
-
-
 
 
 /*
@@ -615,8 +611,7 @@ JGFormula term() :
         inner = formula()
         < CLOSE >
         {
-            if (sign!= null && sign.toString().trim().equals("-")) return new JGMinus(inner);
-            return inner;
+            return sign != null && sign.toString().trim().equals("-") ? new JGUnary("-", inner) : inner;
         }
 
     |   < ID >
@@ -642,26 +637,17 @@ JGFormula term() :
               }
         )*
         {
-          if (sign!= null && sign.toString().trim().equals("-")) return new JGMinus(new JGTerm(name, arguments));
-          return new JGTerm(name, arguments);
+          JGFormula term = arguments.isEmpty() ? new JGTerm(name) : new JGFunction(name, arguments);
+          return sign != null && sign.toString().trim().equals("-") ? new JGUnary("-", term) : term;
         }
 
     |   lit = Literal()
         {
-            if (sign!= null && sign.toString().trim().equals("-")) return new JGMinus(new JGTerm(lit));
-            return new JGTerm(lit);
+          return sign != null && sign.toString().trim().equals("-") ? new JGUnary("-", new JGTerm(lit))
+                                                                    : new JGTerm(lit);
         }
     )
 }
-
-
-
-
-
-
-
-
-
 
 
 JGLiteral Literal():

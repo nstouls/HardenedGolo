@@ -2,10 +2,10 @@ module spec.Div
 
 function div = |a, b| spec/
                         requires {
-                          exists a:int.(2)
+                          exists a:int.(a > 5)
                         }
                         ensures {
-                          (b = 1 \/ result = a) /\ (b > 1 \/ result < a) /\ (b < 1 \/ result > a) /\ false
+                          a = 5 \/ b /\ c % (a /\ 3)
                         }
                      /spec {
   return (a / b)
