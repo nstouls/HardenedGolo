@@ -9,6 +9,8 @@
 
 package org.eclipse.golo.compiler.ir;
 
+import org.eclipse.golo.compiler.parser.GoloASTNode;
+import org.eclipse.golo.compiler.parser.Token;
 import org.eclipse.golo.runtime.OperatorType;
 
 import java.util.List;
@@ -229,7 +231,11 @@ public class IrTreeVisitAndGenerate implements GoloIrVisitor {
     String str="";
     int numberChars = 0;
     try {
-      if (element.getASTNode().jjtGetLastToken().endLine > element.getASTNode().jjtGetFirstToken().beginLine) {
+      GoloASTNode node = element.getASTNode();
+      Token last  = node.jjtGetLastToken();
+      Token first = node.jjtGetFirstToken();
+
+      if (last.endLine > first.beginLine) {
         numberChars += charsPerLine[element.getASTNode().jjtGetFirstToken().beginLine - 1];
       }
       for (int i = element.getASTNode().jjtGetFirstToken().beginLine + 1; i < element.getASTNode().jjtGetLastToken().endLine; i++) {
