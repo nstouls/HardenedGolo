@@ -114,6 +114,43 @@ Of course you can combine profiles, like:
 
     ./gradlew test -P traceTests -P consoleTraceTests -P bootstrap
 
+## Testing
+
+Golo provides different types of testing, such as jasmine/mocha like and wrapped approach, the naming conventions, and the decorators (JUnit).
+
+The first in my opinion, even if is not woking with golo, is too long and not very intuitive.
+By the way, is it possible to implement it in golo by wrapping it within a define method with $ as parameter:
+
+	module my.Test
+
+	function define = |$| {
+  		$: describe("A Suite", {
+    		$: it("A Test", {
+    		})
+  
+    		$: describe("A cascade Suite", {
+    		})
+  		})
+	}
+
+An other approach to do testing with golo is to denominate the name of a function with "test_" prefix. This is easy and simple to use and I think that with junit is the best one.
+Finally let's arrive to junit. JUnit is a unit testing framework for the Java programming language and it is used properly with test driven development which consist in writing test first in order to "drive" the developer towards the implementation of a certain method.
+So an example of junit testing is:
+
+	@Test
+	function testMultiply = {
+    	assertThat(multiply(10, 0)): isEqualTo(0)
+    	assertThat(multiply(3, 2)): isEqualTo(6)
+	}
+
+As I said this type of testing is used to do the TDD development, also known as red, green, refactor cycle.
+Infact in the first phase you write the test but you still don't know the implementation of your program and so it fails.
+The next step is to write the minimum length of code in order to allow the success of the test and in the third phase the developer will refactor it by improving the structure, and so on..
+Moreover one of the pros of using junit is the possibility of using a vaste range of Api's : http://junit.org/junit5/docs/current/api/ 
+
+
+
+
 ## License
 
     Copyright (c) 2012-2016 Institut National des Sciences Appliquées de Lyon (INSA-Lyon) and contributors
