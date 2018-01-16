@@ -45,6 +45,7 @@ public class Main {
     ServiceLoader<CliCommand> commands = ServiceLoader.load(CliCommand.class);
     for (CliCommand command : commands) {
       cmd.addCommand(command);
+      //System.out.println(command.toString());
     }
     UsageFormatValidator.commandNames = cmd.getCommands().keySet();
 

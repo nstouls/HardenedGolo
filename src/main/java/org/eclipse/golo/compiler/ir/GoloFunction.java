@@ -48,7 +48,7 @@ public final class GoloFunction extends ExpressionStatement implements Scope {
     MODULE, AUGMENT, CLOSURE
   }
 
-  GoloFunction() {
+  public GoloFunction() {
     super();
     block = Builders.block();
     makeParentOf(block);
