@@ -119,11 +119,10 @@ public class InitCommand implements CliCommand {
       PrintWriter writer = new PrintWriter(projectFile, "UTF-8")) {
       while ((line = bufferedReader.readLine()) != null) {
         writer.println(line.replace("{{projectName}}", projectName));
-        if(line.contains("golo 'org.eclipse.golo:golo:3.2.0-SNAPSHOT'")){
+//        if(line.contains("golo 'org.eclipse.golo:golo:3.2.0-SNAPSHOT'")){
         	 writer.println("testCompile 'junit:junit:[4,)'");
         	 writer.println("testCompile 'org.hamcrest:hamcrest-library:1.3'");
-        	
-        }
+//        }
       }
     }
   }

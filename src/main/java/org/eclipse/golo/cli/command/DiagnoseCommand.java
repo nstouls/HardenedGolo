@@ -13,22 +13,17 @@ import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
-import com.github.rjeschke.txtmark.Decorator;
-
 import org.eclipse.golo.cli.command.spi.CliCommand;
 import org.eclipse.golo.compiler.GoloCompilationException;
 import org.eclipse.golo.compiler.GoloCompiler;
-import org.eclipse.golo.compiler.ir.GoloFunction;
 import org.eclipse.golo.compiler.ir.GoloModule;
 import org.eclipse.golo.compiler.ir.IrTreeDumper;
 import org.eclipse.golo.compiler.parser.ASTCompilationUnit;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 @Parameters(commandNames = {"diagnose"}, commandDescription = "Diagnosis for the Golo compiler internals")
 public class DiagnoseCommand implements CliCommand {
@@ -118,8 +113,6 @@ public class DiagnoseCommand implements CliCommand {
       System.out.println(">>> IR for: " + file);
       try {
         GoloModule module = compiler.transform(compiler.parse(goloFile));
-        
-        
         if ("refined".equals(this.stage)) {
           compiler.refine(module);
         }

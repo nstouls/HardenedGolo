@@ -315,7 +315,6 @@ public class IrTreeVisitAndGenerate implements GoloIrVisitor {
   @Override
   public void visitFunction(GoloFunction function) {
     //System.out.println("Function: "+function.getName());
-	//System.out.println(function.getDecorators());
     functionsDefined.add(new functionNameArity(function.getName(),function.getArity()));
     whyMLcode.add(space() + "let " + function.getName() + " ");
     appendWhyMLLastString(getSourceCodeBlocksLines(function) + " = ");

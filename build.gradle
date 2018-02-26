@@ -21,7 +21,7 @@ plugins {
   id 'org.asciidoctor.convert' version '1.5.3'
   id 'net.nemerosa.versioning' version '2.2.1'
   id 'com.github.ben-manes.versions' version '0.13.0'
-  
+
 }
 
 // .................................................................................................................. //
@@ -66,7 +66,7 @@ sourceSets {
 // .................................................................................................................. //
 
 configurations.all {
- 	
+  // exclude module: 'junit' // Exclusion removed for tests command support
 }
 
 apply plugin: 'java'
@@ -84,7 +84,7 @@ dependencies {
   testCompile 'org.testng:testng:6.9.12'
   testCompile 'com.google.inject:guice:4.1.0:no_aop' // for TestNG
   testCompile 'org.hamcrest:hamcrest-library:1.3'
-  
+
 }
 
 // .................................................................................................................. //
